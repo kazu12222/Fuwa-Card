@@ -1,93 +1,89 @@
-import React, { useEffect, useRef } from "react";
-import * as THREE from "three";
+"use client";
+import { useEffect, useState } from "react";
 
-const ARScene: React.FC = () => {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+const ARScene = () => {
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!mountRef.current) return;
-
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000,
-    );
-    camera.position.set(0, 1.6, 3);
-    cameraRef.current = camera;
-
-    // レンダラーの初期化
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    mountRef.current.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
-
-    // カメラ映像を背景に設定
-    const setVideoBackground = (stream: MediaStream) => {
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-
-      video.onloadedmetadata = () => {
-        video.play();
-        const videoTexture = new THREE.VideoTexture(video);
-        scene.background = videoTexture;
-      };
+    const isScriptExist = (src: string): boolean => {
+      return document.querySelector(`script[src="${src}"]`) !== null;
     };
 
-    // 外カメラを試みる
-    navigator.mediaDevices
-      .getUserMedia({
-        video: { facingMode: { exact: "environment" } },
-      })
-      .then(setVideoBackground)
-      .catch(() => {
-        // 外カメラが失敗した場合、内カメラを使用
-        navigator.mediaDevices
-          .getUserMedia({
-            video: { facingMode: "user" },
-          })
-          .then(setVideoBackground)
-          .catch((error) => {
-            console.error("カメラのアクセスに失敗しました:", error);
-          });
+    const loadScript = async (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (isScriptExist(src)) {
+          resolve();
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject();
+        document.head.appendChild(script);
       });
-
-    // レンダリングループ
-    const renderScene = () => {
-      requestAnimationFrame(renderScene);
-      renderer.render(scene, camera);
     };
-    renderScene();
 
-    // ウィンドウリサイズ対応
-    const onWindowResize = () => {
-      if (cameraRef.current && rendererRef.current) {
-        cameraRef.current.aspect = window.innerWidth / window.innerHeight;
-        cameraRef.current.updateProjectionMatrix();
-        rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+    const loadScripts = async () => {
+      try {
+        await loadScript("https://aframe.io/releases/1.5.0/aframe.min.js");
+        await loadScript(
+          "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"
+        );
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to load scripts:", error);
       }
     };
-    window.addEventListener("resize", onWindowResize);
+
+    loadScripts();
 
     return () => {
-      window.removeEventListener("resize", onWindowResize);
-      if (mountRef.current && rendererRef.current) {
-        mountRef.current.removeChild(rendererRef.current.domElement);
+      const scene = document.querySelector("a-scene");
+      if (scene) {
+        scene.systems["mindar-image-system"]?.stop();
       }
     };
   }, []);
 
-  return <div ref={mountRef} />;
+  if (isLoading) {
+    return (
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <p className="text-xl">ARを準備中...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <a-scene
+        mindar-image="imageTargetSrc: /targets.mind; filterMinCF:0.0001; filterBeta: 0.001"
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+      >
+        <a-assets>
+          <a-asset-item id="avatarModel" src="/model.gltf"></a-asset-item>
+          <audio id="bgMusic" src="/music.mp3" preload="auto"></audio>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0">
+          <a-gltf-model
+            rotation="0 0 0"
+            position="0 0 0.1"
+            scale="0.005 0.005 0.005"
+            src="#avatarModel"
+            animation__position="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate"
+            animation__rotate="property: rotation; to: 0 360 0; dur: 5000; easing: linear; loop: true"
+          ></a-gltf-model>
+        </a-entity>
+      </a-scene>
+    </div>
+  );
 };
 
 export default ARScene;

@@ -27,8 +27,14 @@ const Page = () => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="text-center text-2xl">
-      <span>AR名刺の中身</span>
+    <div className="h-screen w-screen">
+      <Image
+        src={"/StoD.webp"}
+        alt="StoD-logo"
+        width={80}
+        height={80}
+        className="rounded-full"
+      />
       <Dialog open={isOpen} onOpenChange={() => setIsOpen(!isOpen)}>
         <DialogContent className="w-4/5 rounded-lg">
           <DialogHeader>
