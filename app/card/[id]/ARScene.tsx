@@ -41,8 +41,8 @@ const ARScene = () => {
 
     return () => {
       const scene = document.querySelector("a-scene");
-      if (scene) {
-        scene.systems["mindar-image-system"]?.stop();
+      if (scene && scene.systems["mindar-image-system"]) {
+        scene.systems["mindar-image-system"].stop();
       }
     };
   }, []);
@@ -70,6 +70,7 @@ const ARScene = () => {
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        {/* <a-camera position="0 1.6 3" look-controls="enabled: false"></a-camera> */}
 
         <a-entity mindar-image-target="targetIndex: 0">
           <a-gltf-model
