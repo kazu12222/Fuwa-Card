@@ -1,11 +1,24 @@
-import React from "react";
+"use client";
 
-const Page = () => {
+import React from "react";
+import { useParams } from "next/navigation";
+import ARScene from "./ARScene";
+
+const Post = () => {
+  const params = useParams();
+  let pid = params.pid;
+
+  if (typeof pid === "string") {
+    pid = pid.replace("/ar", "");
+  } else if (Array.isArray(pid)) {
+    pid = pid.map((p) => p.replace("/ar", ""))[0];
+  }
+
   return (
-    <div className="text-center text-2xl">
-      <span>AR名刺の中身</span>
-    </div>
+    <main>
+      <ARScene />
+    </main>
   );
 };
 
-export default Page;
+export default Post;
