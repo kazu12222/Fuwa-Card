@@ -12,8 +12,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useParams } from "next/navigation";
+import ARScene from "./ARScene";
 
 const Page = () => {
+  const params = useParams();
+  let pid = params.pid;
+
+  if (typeof pid === "string") {
+    pid = pid.replace("/ar", "");
+  } else if (Array.isArray(pid)) {
+    pid = pid.map((p) => p.replace("/ar", ""))[0];
+  }
   const [isOpen, setIsOpen] = useState(true);
   return (
     <div className="text-center text-2xl">
@@ -46,8 +56,7 @@ const Page = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ARScene />
     </div>
-  );
-};
 
-export default Page;
+    export default Page;
