@@ -16,7 +16,9 @@ const ARScene = () => {
           return;
         }
 
-        const script = document.createElement("script");
+        const script = (document.createElement(
+          "script"
+        ) as unknown) as HTMLScriptElement;
         script.src = src;
         script.async = true;
         script.onload = () => resolve();
@@ -42,7 +44,7 @@ const ARScene = () => {
     return () => {
       const scene = document.querySelector("a-scene");
       if (scene && scene.systems["mindar-image-system"]) {
-        scene.systems["mindar-image-system"].stop();
+        scene.systems["mindar-image-system"].pause();
       }
     };
   }, []);
