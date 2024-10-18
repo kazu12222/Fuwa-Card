@@ -25,6 +25,7 @@ const Page = () => {
     pid = pid.map((p) => p.replace("/ar", ""))[0];
   }
   const [isOpen, setIsOpen] = useState(true);
+
   return (
     <div className="text-center text-2xl">
       <span>AR名刺の中身</span>
@@ -58,5 +59,6 @@ const Page = () => {
       </Dialog>
       <ARScene />
     </div>
-
-    export default Page;
+  );
+};
+export default Page;
