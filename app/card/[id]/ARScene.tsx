@@ -1,51 +1,74 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
 
 const ARScene = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const isScriptExist = (src: string): boolean => {
-      return document.querySelector(`script[src="${src}"]`) !== null;
-    };
+    // シーンの初期化
+    const scene = new THREE.Scene();
 
-    const loadScript = async (src: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        if (isScriptExist(src)) {
-          resolve();
-          return;
-        }
+    // カメラの設定
+    const camera = new THREE.PerspectiveCamera(
+      70,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 1.6, 3); // カメラの初期位置
 
-        const script = (document.createElement(
-          "script"
-        ) as unknown) as HTMLScriptElement;
-        script.src = src;
-        script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject();
-        document.head.appendChild(script);
+    // レンダラーの設定
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+
+    if (containerRef.current) {
+      containerRef.current.appendChild(renderer.domElement);
+    }
+
+    // ARButtonを追加してARモードを開始するボタンを作成
+    const arButton = ARButton.createButton(renderer);
+    document.body.appendChild(arButton);
+
+    // 環境光を追加
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+
+    // GLTFモデルの読み込み
+    const loader = new GLTFLoader();
+    loader.load("/model.gltf", (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.005, 0.005, 0.005); // モデルのスケール
+      model.position.set(0, 0, 0.1); // モデルの位置
+      scene.add(model);
+      setIsLoading(false); // モデルが読み込まれた後にローディングを終了
+    });
+
+    // アニメーションの設定
+    const animate = () => {
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
       });
     };
 
-    const loadScripts = async () => {
-      try {
-        await loadScript("https://aframe.io/releases/1.5.0/aframe.min.js");
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"
-        );
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Failed to load scripts:", error);
-      }
-    };
+    animate();
 
-    loadScripts();
+    // ウィンドウリサイズ時にカメラとレンダラーのサイズを更新
+    const handleResize = () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      const scene = document.querySelector("a-scene");
-      if (scene && scene.systems["mindar-image-system"]) {
-        scene.systems["mindar-image-system"].pause();
-      }
+      window.removeEventListener("resize", handleResize);
+      document.body.removeChild(arButton); // ARボタンを削除
+      renderer.dispose(); // レンダラーのリソースを解放
     };
   }, []);
 
@@ -57,36 +80,7 @@ const ARScene = () => {
     );
   }
 
-  return (
-    <div>
-      <a-scene
-        mindar-image="imageTargetSrc: /targets.mind; filterMinCF:0.0001; filterBeta: 0.001"
-        color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-      >
-        <a-assets>
-          <a-asset-item id="avatarModel" src="/model.gltf"></a-asset-item>
-          <audio id="bgMusic" src="/music.mp3" preload="auto"></audio>
-        </a-assets>
-
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-        {/* <a-camera position="0 1.6 3" look-controls="enabled: false"></a-camera> */}
-
-        <a-entity mindar-image-target="targetIndex: 0">
-          <a-gltf-model
-            rotation="0 0 0"
-            position="0 0 0.1"
-            scale="0.005 0.005 0.005"
-            src="#avatarModel"
-            animation__position="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate"
-            animation__rotate="property: rotation; to: 0 360 0; dur: 5000; easing: linear; loop: true"
-          ></a-gltf-model>
-        </a-entity>
-      </a-scene>
-    </div>
-  );
+  return <div ref={containerRef}></div>;
 };
 
 export default ARScene;
