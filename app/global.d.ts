@@ -1,4 +1,5 @@
 // global.d.ts
+    /* eslint-disable @typescript-eslint/no-explicit-any */
 declare namespace JSX {
   interface IntrinsicElements {
     "a-scene": any;
@@ -11,3 +12,4 @@ declare namespace JSX {
     // 他にも使用するA-Frame要素があれば追加できます
   }
 }
+    /* eslint-disable @typescript-eslint/no-explicit-any */
